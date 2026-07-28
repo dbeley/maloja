@@ -158,11 +158,11 @@ def get_size_of(obj,counted=None):
 	try:
 		for k,v in obj.items():
 			size += get_size_of(v,counted=counted)
-	except:
+	except AttributeError:
 		try:
 			for i in obj:
 				size += get_size_of(i,counted=counted)
-		except:
+		except TypeError:
 			pass
 	return size
 

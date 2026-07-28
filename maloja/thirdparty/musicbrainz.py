@@ -67,7 +67,7 @@ class MusicBrainz(MetadataInterface):
 						if thumbnails.get(size) is not None:
 							imgurl = thumbnails.get(size)
 							continue
-				except:
+				except (requests.RequestException, KeyError, IndexError):
 					imgurl = None
 				if imgurl is None:
 					entity = entity["release-group"]
@@ -121,7 +121,7 @@ class MusicBrainz(MetadataInterface):
 						if thumbnails.get(size) is not None:
 							imgurl = thumbnails.get(size)
 							continue
-				except:
+				except (requests.RequestException, KeyError, IndexError):
 					imgurl = None
 				if imgurl is None:
 					entity = entity["release-group"]

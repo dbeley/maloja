@@ -257,13 +257,14 @@ def redirect_track(artists,title):
 # warning interception
 import logging
 
-class WaitressLogHandler():
+class WaitressLogHandler(logging.Handler):
 	def __init__(self):
+		super().__init__()
 		self.lastwarned = 0
 		self.barrier = 5
 		self.level = 20
 		self.filters = []
-	def handle(self,record):
+	def emit(self,record):
 		if record.name == 'waitress.queue':
 			now = time.time()
 			depth = record.args[0]
