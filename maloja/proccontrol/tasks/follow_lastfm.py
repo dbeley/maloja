@@ -12,6 +12,7 @@ Configuration:
 
 import os
 import datetime
+import time as time_module
 import requests
 
 from doreah.logging import log
@@ -27,7 +28,7 @@ PER_PAGE = 200
 
 
 def follow_lastfm():
-	"""Main entry point - called from server startup or CLI."""
+	"""Main entry point — called from server startup or CLI."""
 
 	from ...pkg_global.conf import malojaconfig
 
@@ -49,8 +50,6 @@ def follow_lastfm():
 	last_ts_info = get_maloja_info(["lastfm_follow_last_ts"])
 	last_timestamp = int(last_ts_info.get("lastfm_follow_last_ts", 0))
 
-	now_ts = int(datetime.datetime.now(tz=datetime.timezone.utc).timestamp())
-
 	all_new_scrobbles = []
 
 	page = 1
@@ -67,29 +66,43 @@ def follow_lastfm():
 			"extended": "1",
 		}
 
-		try:
-			response = requests.get(API_BASE, params=params, timeout=15)
-			response.raise_for_status()
-			data = response.json()
+		# Retry with exponential backoff on transient errors
+		# (rate limiting, server glitches, etc.)
+		max_retries = 5
+		retry_delay = 2
+		response = None
+		data = None
 
-			if "recenttracks" not in data or "track" not in data["recenttracks"]:
-				log(f"follow_lastfm: Unexpected API response for user '{username}'. Check the username.", color='red')
-				return
+		for attempt in range(1, max_retries + 1):
+			try:
+				response = requests.get(API_BASE, params=params, timeout=30)
+				response.raise_for_status()
+				data = response.json()
+				break  # success, exit retry loop
+			except requests.RequestException as e:
+				status = response.status_code if response is not None else "N/A"
+				if attempt < max_retries:
+					log(f"follow_lastfm: Page {page} (attempt {attempt}/{max_retries}) — HTTP {status}: {e}. Retrying in {retry_delay}s...", color='orange')
+					time_module.sleep(retry_delay)
+					retry_delay *= 2  # exponential backoff: 2, 4, 8, 16, 32
+				else:
+					log(f"follow_lastfm: Page {page} — HTTP {status}: {e}. All {max_retries} retries exhausted, stopping.", color='red')
+					data = None
 
-			# Check for API errors
-			if "error" in data:
-				log(f"follow_lastfm: Last.fm API error: {data.get('message', 'unknown')}", color='red')
-				return
+		if data is None:
+			break  # Could not fetch this page, import what we have so far
 
-			total_pages = int(data["recenttracks"].get("@attr", {}).get("totalPages", 1))
-			tracks = data["recenttracks"]["track"]
+		if "recenttracks" not in data or "track" not in data["recenttracks"]:
+			log(f"follow_lastfm: Unexpected API response for user '{username}'. Check the username.", color='red')
+			return
 
-		except requests.RequestException as e:
-			log(f"follow_lastfm: Network error fetching page {page}: {e}", color='orange')
-			break
-		except (KeyError, ValueError, TypeError) as e:
-			log(f"follow_lastfm: Parse error on page {page}: {e}", color='red')
-			break
+		# Check for API errors
+		if "error" in data:
+			log(f"follow_lastfm: Last.fm API error: {data.get('message', 'unknown')}", color='red')
+			return
+
+		total_pages = int(data["recenttracks"].get("@attr", {}).get("totalPages", 1))
+		tracks = data["recenttracks"]["track"]
 
 		# Process tracks on this page
 		new_count = 0
