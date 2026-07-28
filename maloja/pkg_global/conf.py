@@ -98,7 +98,7 @@ def find_good_folder(datatype):
 
 	possible_folders = info['possible_folders']
 	if os.environ.get("MALOJA_CONTAINER"):
-		possible_folders = info['possible_folders_container'] + possible_folders
+		possible_folders = possible_folders + info['possible_folders_container']
 
 	# check each possible folder if its used
 	for p in possible_folders:
