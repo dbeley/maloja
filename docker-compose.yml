@@ -1,0 +1,19 @@
+services:
+  maloja:
+    build:
+      context: .
+      dockerfile: ./Containerfile
+    ports:
+      - "42010:42010"
+    volumes:
+      - "maloja_data:/data"
+    environment:
+      - "MALOJA_DATA_DIRECTORY=/data"
+      - "MALOJA_SKIP_SETUP=yes"
+      # Optionnel : tes clés et config
+      # - "MALOJA_FOLLOW_LASTFM_USERNAME=ton_user"
+      # - "MALOJA_LASTFM_API_KEY=ta_clef"
+      # - "MALOJA_FORCE_PASSWORD=mon_mot_de_passe"
+
+volumes:
+  maloja_data:

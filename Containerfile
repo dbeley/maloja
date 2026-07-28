@@ -84,3 +84,5 @@ ENV	\
 	PGID=0
 
 EXPOSE 42010
+
+VOLUME /data
