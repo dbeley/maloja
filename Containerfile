@@ -3,9 +3,6 @@ FROM lsiobase/alpine:3.21 AS base
 WORKDIR /usr/src/app
 
 
-
-COPY --chown=abc:abc ./requirements.txt ./requirements.txt
-
 # based on https://github.com/linuxserver/docker-pyload-ng/blob/main/Dockerfile
 # everything but the app installation is run in one command so we can purge
 # all build dependencies and cache in the same layer
@@ -32,16 +29,14 @@ RUN \
 		libmagic \
 		tzdata && \
   echo "" && \
-	echo "**** install pip dependencies ****" && \
+	echo "**** install pip and build backend ****" && \
 	python3 -m venv /venv && \
     . /venv/bin/activate && \
 	python3 -m ensurepip && \
     pip install -U --no-cache-dir \
 	  pip \
-	  wheel && \
-  echo "" && \
-  echo "**** install maloja requirements ****" && \
-  pip install --no-cache-dir -r requirements.txt && \
+	  wheel \
+	  flit-core && \
   echo "" && \
 	echo "**** cleanup ****" && \
 	apk del --purge \
@@ -50,24 +45,19 @@ RUN \
 		/tmp/* \
 		${HOME}/.cache
 
-# actual installation in extra layer so we can cache the stuff above
+# Copy everything and install maloja (including deps from pyproject.toml)
+# pyproject.toml is the single source of truth for dependencies
 
 COPY --chown=abc:abc . .
 
 RUN \
   echo "" && \
 	echo "**** install maloja ****" && \
-	apk add --no-cache --virtual=install-deps \
-	  py3-pip && \
-	python3 -m venv /venv && \
-    . /venv/bin/activate && \
-	pip3 install /usr/src/app && \
-	apk del --purge \
-		install-deps && \
+	. /venv/bin/activate && \
+	pip install --no-cache-dir -e . && \
 	rm -rf \
 		/tmp/* \
 		${HOME}/.cache
-
 
 
 COPY container/root/ /
@@ -84,3 +74,5 @@ ENV	\
 	PGID=0
 
 EXPOSE 42010
+
+VOLUME /data

@@ -50,33 +50,6 @@ build-backend = "flit_core.buildapi"
 [tool.flit.module]
 name = "maloja"
 
-[tool.osreqs.alpine]
-build =[
-	"gcc",
-	"g++",
-	"python3-dev",
-	"libxml2-dev",
-	"libxslt-dev",
-	"libffi-dev",
-	"libc-dev",
-	"py3-pip",
-	"linux-headers"
-]
-run = [
-	"python3",
-	"py3-lxml",
-	"tzdata",
-	"libmagic"
-]
-opt = [
-	"vips"
-]
-
-[tool.osreqs.debian]
-build = [
-	"python3-pip"
-]
-run = [
-	"python3"
-]
-opt = []
+[tool.uv]
+# uv sync installs all dependencies from pyproject.toml
+# uv lock generates the lockfile for reproducible installs
