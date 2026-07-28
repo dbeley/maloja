@@ -81,7 +81,7 @@ def follow_lastfm():
 				log(f"follow_lastfm: Last.fm API error: {data.get('message', 'unknown')}", color='red')
 				return
 
-			total_pages = int(data["recenttracks"].get("totalPages", 1))
+			total_pages = int(data["recenttracks"].get("@attr", {}).get("totalPages", 1))
 			tracks = data["recenttracks"]["track"]
 
 		except requests.RequestException as e:
