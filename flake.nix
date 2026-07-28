@@ -68,6 +68,18 @@
               default = false;
               description = "Open port in firewall";
             };
+
+            followLastfmUsername = mkOption {
+              type = types.nullOr types.str;
+              default = null;
+              description = "Last.fm username to periodically import scrobbles from. Requires lastfmApiKey to be set.";
+            };
+
+            lastfmApiKey = mkOption {
+              type = types.nullOr types.str;
+              default = null;
+              description = "Last.fm API key (required for followLastfmUsername and image metadata).";
+            };
           };
 
           config = mkIf cfg.enable {
@@ -110,6 +122,10 @@
                   "MALOJA_DATA_DIRECTORY=${cfg.dataDir}"
                 ];
               });
+
+              serviceConfig.Environment = (serviceConfig.Environment or []) ++
+                (lib.optional (cfg.followLastfmUsername != null) "MALOJA_FOLLOW_LASTFM_USERNAME=${cfg.followLastfmUsername}") ++
+                (lib.optional (cfg.lastfmApiKey != null) "MALOJA_LASTFM_API_KEY=${cfg.lastfmApiKey}");
 
               preStart = ''
                 mkdir -p ${cfg.dataDir}/{config,state,cache,logs}
