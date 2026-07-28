@@ -7,16 +7,62 @@
 <script>
 function import_scrobbles(identifier) {
 	fetch('/apis/mlj_1/import?identifier=' + identifier,{'method':'POST'});
+}
 
+function uploadAndImport(event) {
+	event.preventDefault();
+	const form = document.getElementById('uploadForm');
+	const formData = new FormData(form);
+	const status = document.getElementById('uploadStatus');
+	status.textContent = 'Uploading and importing...';
+	status.className = 'status-pending';
+
+	fetch('/apis/mlj_1/importfile', {
+		method: 'POST',
+		body: formData
+	})
+	.then(r => r.json())
+	.then(data => {
+		if (data.status === 'success') {
+			status.textContent = data.desc;
+			status.className = 'status-success';
+		} else {
+			status.textContent = 'Error: ' + (data.desc || 'Unknown error');
+			status.className = 'status-error';
+		}
+	})
+	.catch(err => {
+		status.textContent = 'Network error: ' + err;
+		status.className = 'status-error';
+	});
 }
 </script>
+
+<style>
+.status-pending { color: #888; }
+.status-success { color: #0a0; }
+.status-error { color: #c00; }
+.upload-section { border: 1px solid #ccc; padding: 1em; margin: 1em 0; border-radius: 4px; }
+</style>
 {% endblock %}
 
 
 {% block maincontent %}
-You can import your scrobbles from other platforms. This will not overwrite scrobbles you've already made,
-unless they are deemed to be equivalent (exact same timestamp). Importing multiple times from the same
-source should also not lead to any duplicates.<br/><br/>
+<p>
+	You can import your scrobbles from other platforms. This will not overwrite scrobbles you've already made,
+	unless they are deemed to be equivalent (exact same timestamp). Importing multiple times from the same
+	source should also not lead to any duplicates.
+</p>
+
+<div class="upload-section">
+	<h2>Upload a scrobble export file</h2>
+	<p>Supported formats: Last.fm CSV/JSON, Spotify JSON, ListenBrainz JSON, Rockbox, Maloja JSON.</p>
+	<form id="uploadForm" onsubmit="uploadAndImport(event)">
+		<input type="file" name="file" required />
+		<button type="submit">Upload and Import</button>
+	</form>
+	<p id="uploadStatus"></p>
+</div>
 
 {% for importsource in thirdparty.services.import %}
 	<h1>{{ importsource.name }}</h1>

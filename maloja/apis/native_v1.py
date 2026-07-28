@@ -2,7 +2,7 @@ import os
 import math
 import traceback
 
-from bottle import response, static_file, FormsDict
+from bottle import response, static_file, FormsDict, request
 
 from inspect import signature
 
@@ -813,6 +813,37 @@ def import_scrobbles(identifier):
 	"""Internal Use Only"""
 	from ..thirdparty import import_scrobbles
 	import_scrobbles(identifier)
+
+@api.post("importfile")
+@auth.authenticated_function(api=True)
+@catch_exceptions
+def import_file(**keys):
+	"""Upload a CSV/JSON file to import scrobbles from a third-party export."""
+
+	upload = request.files.get("file")
+	if not upload:
+		return {"status":"error","desc":"No file uploaded."}
+
+	filename = upload.filename
+	savepath = data_dir['import'](filename)
+
+	# Save the uploaded file to the import directory
+	upload.save(savepath)
+	log(f"File uploaded to import directory: {savepath}")
+
+	# Import the file
+	from ..proccontrol.tasks.import_scrobbles import import_scrobbles as run_import
+	result = run_import(savepath)
+
+	imported = result.get("CONFIDENT_IMPORT", 0) + result.get("UNCERTAIN_IMPORT", 0)
+	skipped = result.get("CONFIDENT_SKIP", 0) + result.get("UNCERTAIN_SKIP", 0)
+	failed = result.get("FAIL", 0)
+
+	return {
+		"status":"success",
+		"desc":f"Imported {imported} scrobbles ({skipped} skipped, {failed} errors).",
+		"result":result
+	}
 
 @api.get("backup")
 @auth.authenticated_function(api=True)
