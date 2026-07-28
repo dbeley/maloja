@@ -11,3 +11,7 @@
 *.xcf
 *.note
 *-old
+
+# Nix / direnv
+.direnv/
+result*
