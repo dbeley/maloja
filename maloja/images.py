@@ -29,7 +29,7 @@ MAX_SECONDS_TO_RESOLVE_REQUEST = 5
 # remove old db file (columns missing)
 try:
 	os.remove(data_dir['cache']('images.sqlite'))
-except:
+except FileNotFoundError:
 	pass
 
 DB = {}
@@ -140,7 +140,7 @@ def remove_image_from_cache(track_id=None,artist_id=None,album_id=None):
 			try:
 				targetpath = data_dir['cache']('images',row.localproxyurl.split('/')[-1])
 				os.remove(targetpath)
-			except:
+			except (FileNotFoundError, AttributeError):
 				pass
 
 

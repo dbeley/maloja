@@ -11,20 +11,20 @@ try:
 	from simplejson import JSONEncoder
 	JSONEncoder._olddefault = JSONEncoder.default
 	JSONEncoder.default = newdefault
-except Exception:
+except ImportError:
 	pass
 
 try:
 	from json import JSONEncoder
 	JSONEncoder._olddefault = JSONEncoder.default
 	JSONEncoder.default = newdefault
-except Exception:
+except ImportError:
 	pass
 
 try:
 	from ujson import JSONEncoder
 	JSONEncoder._olddefault = JSONEncoder.default
 	JSONEncoder.default = newdefault
-except Exception:
+except ImportError:
 	pass
 

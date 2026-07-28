@@ -5,7 +5,7 @@
 # this is hardcoded for now because of that damn project / package name discrepancy
 # i'll fix it one day
 VERSION = "3.2.4"
-HOMEPAGE = "https://github.com/krateng/maloja"
+HOMEPAGE = "https://github.com/dbeley/maloja"
 
 
 USER_AGENT = f"Maloja/{VERSION} ( {HOMEPAGE} )"

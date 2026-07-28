@@ -455,10 +455,10 @@ def add_tracks_to_albums(track_to_album_id_dict: dict[int, int], replace=False, 
 
 
 @connection_provider
-def remove_album(*track_ids: list[int], dbconn=None) -> bool:
+def remove_album(track_ids: list[int], dbconn=None) -> bool:
 
 	DB['tracks'].update().where(
-		DB['tracks'].c.track_id.in_(track_ids)
+		DB['tracks'].c.id.in_(track_ids)
 	).values(
 		album_id=None
 	)

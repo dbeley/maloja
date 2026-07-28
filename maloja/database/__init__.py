@@ -968,7 +968,10 @@ def start_db():
 	# cache some stuff that we'll probably need
 	with sqldb.engine.connect() as dbconn:
 		with dbconn.begin():
+			current_week = thisweek()
 			for week in ranges(step='week'):
+				if week.first_stamp() < (current_week.first_stamp() - 52 * 7 * 24 * 3600):
+					break
 				sqldb.count_scrobbles_by_artist(since=week.first_stamp(),to=week.last_stamp(),resolve_ids=False,associated=True,dbconn=dbconn)
 				sqldb.count_scrobbles_by_track(since=week.first_stamp(),to=week.last_stamp(),resolve_ids=False,dbconn=dbconn)
 				sqldb.count_scrobbles_by_album(since=week.first_stamp(),to=week.last_stamp(),resolve_ids=False,dbconn=dbconn)
