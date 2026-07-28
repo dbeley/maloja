@@ -2,7 +2,6 @@
 !maloja
 !container
 !Containerfile
-!requirements.txt
 !pyproject.toml
 !README.md
 !LICENSE

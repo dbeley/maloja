@@ -17,10 +17,19 @@ Run the included `docker-compose.yml` file.
 ## Environment (Python venv)
 
 To avoid cluttering your system, consider using a [virtual environment](https://docs.python.org/3/tutorial/venv.html).
+
+With pip:
 ```console
 	python3 -m venv .venv
 	source .venv/bin/activate
 	pip install -e .
+```
+
+With uv (recommended for faster installs):
+```console
+	uv sync
+	source .venv/bin/activate
+	# or: uv run maloja run
 ```
 
 ## Environment (NixOS / Nix Flake)
