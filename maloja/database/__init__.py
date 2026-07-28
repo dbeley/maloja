@@ -758,7 +758,18 @@ def track_info(dbconn=None,**keys):
 	alltimecharts = get_charts_tracks(timerange=alltime(),resolve_ids=False,dbconn=dbconn)
 	#scrobbles = get_scrobbles_num(track=track,timerange=alltime())
 
-	c = [e for e in alltimecharts if e["track_id"] == track_id][0]
+	matches = [e for e in alltimecharts if e["track_id"] == track_id]
+	if not matches:
+		return {
+			"track":track,
+			"scrobbles":0,
+			"position":None,
+			"medals":{"gold":[],"silver":[],"bronze":[]},
+			"certification":None,
+			"topweeks":0,
+			"id":track_id
+		}
+	c = matches[0]
 	scrobbles = c["scrobbles"]
 	position = c["rank"]
 	cert = None
@@ -816,7 +827,18 @@ def album_info(dbconn=None,reduced=False,**keys):
 		scrobbles = get_scrobbles_num(album=album,timerange=alltime())
 	else:
 		alltimecharts = get_charts_albums(timerange=alltime(),dbconn=dbconn)
-		c = [e for e in alltimecharts if e["album"] == album][0]
+		matches = [e for e in alltimecharts if e["album"] == album]
+		if not matches:
+			return {
+				"album":album,
+				"scrobbles":0,
+				"certification":None,
+				"id":album_id,
+				"position":None,
+				"medals":{"gold":[],"silver":[],"bronze":[]},
+				"topweeks":0
+			}
+		c = matches[0]
 		scrobbles = c["scrobbles"]
 		position = c["rank"]
 		extrainfo['position'] = position
