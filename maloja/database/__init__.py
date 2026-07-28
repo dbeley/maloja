@@ -976,6 +976,27 @@ def start_db():
 				sqldb.count_scrobbles_by_track(since=week.first_stamp(),to=week.last_stamp(),resolve_ids=False,dbconn=dbconn)
 				sqldb.count_scrobbles_by_album(since=week.first_stamp(),to=week.last_stamp(),resolve_ids=False,dbconn=dbconn)
 
+	# start periodic Last.fm follow task if configured
+	from ..proccontrol.tasks.follow_lastfm import follow_lastfm
+	from ..pkg_global.conf import malojaconfig as _conf
+
+	if _conf["FOLLOW_LASTFM_USERNAME"] and _conf["LASTFM_API_KEY"]:
+
+		def _follow_lastfm_scheduler():
+			"""Run follow_lastfm once, then reschedule itself every hour."""
+			try:
+				follow_lastfm()
+			except Exception as e:
+				log(f"follow_lastfm: Task failed: {e}", color='orange')
+			from threading import Timer as _Timer
+			t = _Timer(3600, _follow_lastfm_scheduler)
+			t.daemon = True
+			t.name = "follow-lastfm-hourly"
+			t.start()
+
+		log("follow_lastfm: Starting hourly follow task for Last.fm user '" + _conf["FOLLOW_LASTFM_USERNAME"] + "'...", color='cyan')
+		_follow_lastfm_scheduler()
+
 
 
 
