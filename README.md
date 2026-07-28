@@ -3,7 +3,7 @@
 > [!IMPORTANT] 
 > Maloja is only receiving security updates. You can install it as is and it will work, but I'm working on a [successor](https://github.com/krateng/maloja-rs).
 
-[![](https://img.shields.io/github/v/tag/krateng/maloja?label=GitHub&style=for-the-badge&logo=github&logoColor=white)](https://github.com/krateng/maloja)
+[![](https://img.shields.io/github/v/tag/dbeley/maloja?label=GitHub&style=for-the-badge&logo=github&logoColor=white)](https://github.com/dbeley/maloja)
 [![](https://img.shields.io/pypi/v/malojaserver?label=PyPI&style=for-the-badge&logo=pypi&logoColor=white)](https://pypi.org/project/malojaserver/)
 [![](https://img.shields.io/docker/v/krateng/maloja?label=Dockerhub&style=for-the-badge&logo=docker&logoColor=white)](https://hub.docker.com/r/krateng/maloja)
 
@@ -70,6 +70,34 @@ The modified run command with these variables would look like:
 
 ```console
 	docker run -e PUID=1000 -e PGID=1001 -p 42010:42010 -v $PWD/malojadata:/mljdata -e MALOJA_DATA_DIRECTORY=/mljdata krateng/maloja
+```
+
+### NixOS
+
+Install Maloja as a NixOS module using the provided flake:
+
+```nix
+{
+  inputs = {
+    maloja.url = "github:dbeley/maloja";
+  };
+
+  # In your configuration.nix:
+  imports = [ maloja.nixosModules.maloja ];
+
+  services.maloja = {
+    enable = true;
+    port = 42010;
+    openFirewall = true;
+  };
+}
+```
+
+Development with Nix:
+
+```console
+nix develop   # enter a dev shell with all dependencies
+maloja run
 ```
 
 
