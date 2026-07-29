@@ -4,10 +4,7 @@ WORKDIR /usr/src/app
 
 
 # based on https://github.com/linuxserver/docker-pyload-ng/blob/main/Dockerfile
-# everything but the app installation is run in one command so we can purge
-# all build dependencies and cache in the same layer
-# it may be possible to decrease image size slightly by using build stage and
-# copying all site-packages to runtime stage but the image is already pretty small
+
 RUN \
   echo "" && \
   echo "**** install build packages ****" && \
@@ -36,19 +33,26 @@ RUN \
     pip install -U --no-cache-dir \
 	  pip \
 	  wheel \
-	  flit-core && \
+	  flit-core
+
+# Copy pyproject.toml and install dependencies (this layer is cached unless pyproject.toml changes)
+COPY --chown=abc:abc pyproject.toml .
+
+RUN \
   echo "" && \
-	echo "**** cleanup ****" && \
+	echo "**** install maloja dependencies from pyproject.toml ****" && \
+	. /venv/bin/activate && \
+	pip install --no-cache-dir -e . && \
+  echo "" && \
+	echo "**** cleanup build dependencies ****" && \
 	apk del --purge \
 		build-deps && \
 	rm -rf \
 		/tmp/* \
 		${HOME}/.cache
 
-# Copy everything and install maloja (including deps from pyproject.toml)
-# pyproject.toml is the single source of truth for dependencies
-
-COPY --chown=abc:abc . .
+# Copy the rest of the source and reinstall (only the package itself, deps are cached)
+COPY --chown=abc:abc maloja/ ./maloja/
 
 RUN \
   echo "" && \
