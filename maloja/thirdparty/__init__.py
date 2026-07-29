@@ -36,7 +36,7 @@ class RateLimitExceeded(Exception):
 # have a limited number of worker threads so we don't completely hog the cpu with
 # these requests. they are mostly network bound, so python will happily open up 200 new
 # requests and then when all the responses come in we suddenly can't load pages anymore
-thirdpartylock = BoundedSemaphore(4)
+thirdpartylock = BoundedSemaphore(10)
 
 
 def import_scrobbles(identifier):
