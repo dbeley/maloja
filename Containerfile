@@ -35,31 +35,19 @@ RUN \
 	  wheel \
 	  flit-core
 
-# Copy pyproject.toml with its referenced files (README.md, LICENSE) and install dependencies
-# This layer is cached unless pyproject.toml changes
-COPY --chown=abc:abc pyproject.toml README.md LICENSE .
-
-RUN \
-  echo "" && \
-	echo "**** install maloja dependencies from pyproject.toml ****" && \
-	. /venv/bin/activate && \
-	pip install --no-cache-dir -e . && \
-  echo "" && \
-	echo "**** cleanup build dependencies ****" && \
-	apk del --purge \
-		build-deps && \
-	rm -rf \
-		/tmp/* \
-		${HOME}/.cache
-
-# Copy the rest of the source and reinstall (only the package itself, deps are cached)
-COPY --chown=abc:abc maloja/ ./maloja/
+# Copy the full source and install maloja with all dependencies
+# pyproject.toml is the single source of truth for everything
+COPY --chown=abc:abc . .
 
 RUN \
   echo "" && \
 	echo "**** install maloja ****" && \
 	. /venv/bin/activate && \
 	pip install --no-cache-dir -e . && \
+  echo "" && \
+	echo "**** cleanup build dependencies ****" && \
+	apk del --purge \
+		build-deps && \
 	rm -rf \
 		/tmp/* \
 		${HOME}/.cache
