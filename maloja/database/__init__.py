@@ -999,6 +999,16 @@ def start_db():
 				sqldb.count_scrobbles_by_track(since=week.first_stamp(),to=week.last_stamp(),resolve_ids=False,dbconn=dbconn)
 				sqldb.count_scrobbles_by_album(since=week.first_stamp(),to=week.last_stamp(),resolve_ids=False,dbconn=dbconn)
 
+	# pre-resolve featured images for faster start page loading
+	try:
+		featured = get_featured(dbconn=dbconn)
+		for entity_type in ('artist','track','album'):
+			entity = featured.get(entity_type)
+			if entity:
+				getattr(sqldb, f'get_{entity_type}_id')(entity, create_new=False, dbconn=dbconn)
+	except Exception:
+		pass
+
 	# start periodic Last.fm follow task if configured
 	from ..proccontrol.tasks.follow_lastfm import follow_lastfm
 	from ..pkg_global.conf import malojaconfig as _conf
