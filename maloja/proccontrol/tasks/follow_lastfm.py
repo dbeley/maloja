@@ -187,7 +187,14 @@ def follow_lastfm():
 
 		# Invalidate caches so the new scrobbles show up immediately
 		from ...database import dbcache
-		dbcache.invalidate_caches(newest_ts)
+		if hasattr(dbcache, 'cache'):
+			size_before = len(dbcache.cache)
+			dbcache.cache.clear()
+			log(f"follow_lastfm: Cleared DB cache ({size_before} entries)", module="debug_performance")
+		if hasattr(dbcache, 'entitycache'):
+			entity_size = len(dbcache.entitycache)
+			dbcache.entitycache.clear()
+			log(f"follow_lastfm: Cleared entity cache ({entity_size} entries)", module="debug_performance")
 
 	except Exception as e:
 		log(f"follow_lastfm: Error importing scrobbles: {e}", color='red')
