@@ -135,7 +135,8 @@ def follow_lastfm():
 			title = track.get("name", "")
 			album_info = track.get("album", {})
 			if isinstance(album_info, dict):
-				album_name = album_info.get("name", "")
+				# Last.fm API uses #text without extended=1, or name with extended=1
+				album_name = album_info.get("name") or album_info.get("#text", "")
 			else:
 				album_name = str(album_info)
 
