@@ -35,8 +35,9 @@ RUN \
 	  wheel \
 	  flit-core
 
-# Copy pyproject.toml and install dependencies (this layer is cached unless pyproject.toml changes)
-COPY --chown=abc:abc pyproject.toml .
+# Copy pyproject.toml with its referenced files (README.md, LICENSE) and install dependencies
+# This layer is cached unless pyproject.toml changes
+COPY --chown=abc:abc pyproject.toml README.md LICENSE .
 
 RUN \
   echo "" && \
