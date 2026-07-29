@@ -22,8 +22,8 @@ import sqlalchemy as sql
 
 
 
-MAX_RESOLVE_THREADS = 5
-MAX_SECONDS_TO_RESOLVE_REQUEST = 5
+MAX_RESOLVE_THREADS = 20
+MAX_SECONDS_TO_RESOLVE_REQUEST = 1
 
 
 # remove old db file (columns missing)
