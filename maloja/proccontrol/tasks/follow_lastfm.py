@@ -197,5 +197,16 @@ def follow_lastfm():
 			dbcache.entitycache.clear()
 			log(f"follow_lastfm: Cleared entity cache ({entity_size} entries)", module="debug_performance")
 
+		# Guess albums from scrobble extra data for tracks without album
+		try:
+			from ...database.sqldb import guess_albums, engine as _eng
+			with _eng.begin() as _conn:
+				guessed = guess_albums(dbconn=_conn)
+				linked = sum(1 for g in guessed.values() if g.get("assigned"))
+				if linked:
+					log(f"follow_lastfm: Linked {linked} tracks to albums from scrobble data")
+		except Exception as e:
+			log(f"follow_lastfm: Album guessing failed: {e}", color='orange')
+
 	except Exception as e:
 		log(f"follow_lastfm: Error importing scrobbles: {e}", color='red')

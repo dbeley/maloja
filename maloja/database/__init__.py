@@ -1008,6 +1008,15 @@ def start_db():
 	except Exception:
 		pass
 
+	# Guess albums from scrobble extras for tracks without album_id
+	try:
+		guessed = sqldb.guess_albums(dbconn=dbconn)
+		linked = sum(1 for g in guessed.values() if g.get("assigned"))
+		if linked:
+			log(f"Linked {linked} tracks to albums from scrobble data", color='cyan')
+	except Exception:
+		pass
+
 	# start periodic Last.fm follow task if configured
 	from ..proccontrol.tasks.follow_lastfm import follow_lastfm
 	from ..pkg_global.conf import malojaconfig as _conf
