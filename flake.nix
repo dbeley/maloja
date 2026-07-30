@@ -15,7 +15,7 @@
       forAllSystemsWithPkgs = f:
         forAllSystems (system: f system nixpkgs.legacyPackages.${system});
 
-      pythonVersion = "311";
+      pythonVersion = "312";
 
       mkApp = drv: {
         type = "app";
@@ -133,24 +133,31 @@
         };
 
       # Development shell
-      devShells = forAllSystemsWithPkgs (system: pkgs: {
+      devShells = forAllSystemsWithPkgs (system: pkgs:
+        let
+          python = pkgs.${"python${pythonVersion}"};
+          pyPkgs = python.withPackages (ps: with ps; [
+            bottle
+            waitress
+            setproctitle
+            jinja2
+            lru-dict
+            psutil
+            sqlalchemy
+            python-magic
+            requests
+            toml
+            pyyaml
+            pyvips
+          ]);
+        in
+        {
         default = pkgs.mkShell {
           packages = with pkgs; [
-            ((pkgs.${"python${pythonVersion}"}).withPackages (ps: with ps; [
-              bottle
-              waitress
-              setproctitle
-              jinja2
-              lru-dict
-              psutil
-              sqlalchemy
-              datauri
-              python-magic
-              requests
-              toml
-              pyyaml
-              pyvips
-            ]))
+            pyPkgs
+            (python.pkgs.datauri.overridePythonAttrs {
+              dontCheckPythonMetadata = true;
+            })
             sqlite-interactive
             sqlitebrowser
             gnumake
