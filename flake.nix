@@ -144,7 +144,7 @@
               lru-dict
               psutil
               sqlalchemy
-              python-datauri
+              datauri
               python-magic
               requests
               toml
@@ -180,9 +180,9 @@
             jinja2
             lru-dict
             psutil
-            sqlalchemy
-            python-datauri
-            python-magic
+              sqlalchemy
+              datauri
+              python-magic
             requests
             toml
             pyyaml
