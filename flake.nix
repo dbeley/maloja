@@ -29,6 +29,14 @@
         let
           cfg = config.services.maloja;
           malojaPackage = self.packages.${pkgs.system}.default;
+
+          toEnvName = name: "MALOJA_" + lib.toUpper (builtins.replaceStrings ["-"] ["_"] name);
+          toEnvValue = value:
+            if builtins.isBool value then (if value then "true" else "false")
+            else toString value;
+          settingsToEnv = attrs:
+            mapAttrsToList (n: v: "${toEnvName n}=${toEnvValue v}")
+              (filterAttrs (n: v: v != null) attrs);
         in {
           options.services.maloja = {
             enable = mkEnableOption "Maloja scrobble server";
@@ -48,7 +56,7 @@
             host = mkOption {
               type = types.str;
               default = "*";
-              description = "Host to bind to";
+              description = "Host to bind to. Set to 127.0.0.1 if using the nginx reverse proxy.";
             };
 
             port = mkOption {
@@ -60,7 +68,7 @@
             configFile = mkOption {
               type = types.nullOr types.str;
               default = null;
-              description = "Path to custom settings.ini file";
+              description = "Path to custom settings.ini file directory. Overrides settings option for equivalent keys.";
             };
 
             openFirewall = mkOption {
@@ -78,7 +86,70 @@
             lastfmApiKey = mkOption {
               type = types.nullOr types.str;
               default = null;
-              description = "Last.fm API key (required for followLastfmUsername and image metadata).";
+              description = "Last.fm API key (required for followLastfmUsername and image metadata). Prefer environmentFile for secrets.";
+            };
+
+            settings = mkOption {
+              type = types.attrsOf (types.nullOr (types.oneOf [ types.str types.int types.bool types.path ]));
+              default = { };
+              example = {
+                theme = "dark";
+                name = "My Maloja";
+                scrobbles_gold = 100;
+                location_timezone = "Europe/Berlin";
+              };
+              description = ''
+                Additional settings passed as MALOJA_* environment variables.
+                See settings.md for all available options.
+                Prefer environmentFile for secrets like API keys.
+              '';
+            };
+
+            environmentFile = mkOption {
+              type = types.nullOr types.path;
+              default = null;
+              description = ''
+                File containing environment variables (KEY=VALUE lines) passed to the
+                maloja service. Use this for secrets like API keys instead of putting
+                them in the nix store. File is re-read on service restart.
+                These override both explicit options and settings with the same key.
+              '';
+            };
+
+            nginx = {
+              enable = mkEnableOption "nginx reverse proxy for Maloja";
+
+              domain = mkOption {
+                type = types.nullOr types.str;
+                default = null;
+                description = "Domain name for the Maloja web interface. Required for ACME/SSL.";
+              };
+
+              serverAliases = mkOption {
+                type = types.listOf types.str;
+                default = [ ];
+                description = "Additional domain names";
+              };
+
+              ssl = {
+                enable = mkOption {
+                  type = types.bool;
+                  default = true;
+                  description = "Enable SSL via ACME (requires domain to be set)";
+                };
+
+                autoEnable = mkOption {
+                  type = types.bool;
+                  default = true;
+                  description = "Automatically request ACME certificate";
+                };
+              };
+
+              extraConfig = mkOption {
+                type = types.lines;
+                default = "";
+                description = "Additional nginx virtual host configuration";
+              };
             };
           };
 
@@ -114,13 +185,19 @@
                 MemoryDenyWriteExecute = false;
                 ReadWritePaths = [ cfg.dataDir ];
                 Environment =
-                  (if cfg.configFile != null then
+                  [ "MALOJA_HOST=${cfg.host}"
+                    "MALOJA_PORT=${toString cfg.port}"
+                  ]
+                  ++ (if cfg.configFile != null then
                     [ "MALOJA_DIRECTORY_CONFIG=${cfg.configFile}" ]
                   else
                     [ "MALOJA_DATA_DIRECTORY=${cfg.dataDir}" ]
                   )
                   ++ lib.optional (cfg.followLastfmUsername != null) "MALOJA_FOLLOW_LASTFM_USERNAME=${cfg.followLastfmUsername}"
-                  ++ lib.optional (cfg.lastfmApiKey != null) "MALOJA_LASTFM_API_KEY=${cfg.lastfmApiKey}";
+                  ++ lib.optional (cfg.lastfmApiKey != null) "MALOJA_LASTFM_API_KEY=${cfg.lastfmApiKey}"
+                  ++ settingsToEnv cfg.settings;
+              } // lib.optionalAttrs (cfg.environmentFile != null) {
+                EnvironmentFile = cfg.environmentFile;
               };
 
               preStart = ''
@@ -128,7 +205,30 @@
               '';
             };
 
-            networking.firewall.allowedTCPPorts = mkIf cfg.openFirewall [ cfg.port ];
+            services.nginx = mkIf cfg.nginx.enable {
+              enable = true;
+              virtualHosts = lib.optionalAttrs (cfg.nginx.domain != null) {
+                "${cfg.nginx.domain}" = {
+                  serverName = cfg.nginx.domain;
+                  serverAliases = cfg.nginx.serverAliases;
+                  locations."/" = {
+                    proxyPass = "http://127.0.0.1:${toString cfg.port}";
+                    proxyWebsockets = true;
+                    recommendedProxySettings = true;
+                  };
+                  extraConfig = cfg.nginx.extraConfig;
+                } // lib.optionalAttrs (cfg.nginx.ssl.enable) {
+                  enableACME = cfg.nginx.ssl.autoEnable;
+                  forceSSL = true;
+                };
+              };
+            };
+
+            networking.firewall.allowedTCPPorts = mkIf cfg.openFirewall (
+              if cfg.nginx.enable && cfg.nginx.domain != null && cfg.nginx.ssl.enable
+              then [ 80 443 ]
+              else [ cfg.port ]
+            );
           };
         };
 
