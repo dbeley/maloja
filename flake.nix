@@ -28,65 +28,30 @@
         with lib;
         let
           cfg = config.services.maloja;
-          malojaPackage = self.packages.${pkgs.system}.default;
-
-          toEnvName = name: "MALOJA_" + lib.toUpper (builtins.replaceStrings ["-"] ["_"] name);
-          toEnvValue = value:
-            if builtins.isBool value then (if value then "true" else "false")
-            else toString value;
-          settingsToEnv = attrs:
-            mapAttrsToList (n: v: "${toEnvName n}=${toEnvValue v}")
-              (filterAttrs (n: v: v != null) attrs);
+          toEnv = name: "MALOJA_" + lib.toUpper (builtins.replaceStrings ["-"] ["_"] name);
+          toVal = v: if builtins.isBool v then (if v then "true" else "false") else toString v;
         in {
           options.services.maloja = {
             enable = mkEnableOption "Maloja scrobble server";
 
             package = mkOption {
               type = types.package;
-              default = malojaPackage;
-              description = "Maloja package to use";
+              default = self.packages.${pkgs.system}.default;
             };
 
             dataDir = mkOption {
               type = types.str;
               default = "/var/lib/maloja";
-              description = "Data directory for Maloja";
             };
 
             host = mkOption {
               type = types.str;
-              default = "*";
-              description = "Host to bind to. Set to 127.0.0.1 if using the nginx reverse proxy.";
+              default = "127.0.0.1";
             };
 
             port = mkOption {
               type = types.port;
               default = 42010;
-              description = "Port to listen on";
-            };
-
-            configFile = mkOption {
-              type = types.nullOr types.str;
-              default = null;
-              description = "Path to custom settings.ini file directory. Overrides settings option for equivalent keys.";
-            };
-
-            openFirewall = mkOption {
-              type = types.bool;
-              default = false;
-              description = "Open port in firewall";
-            };
-
-            followLastfmUsername = mkOption {
-              type = types.nullOr types.str;
-              default = null;
-              description = "Last.fm username to periodically import scrobbles from. Requires lastfmApiKey to be set.";
-            };
-
-            lastfmApiKey = mkOption {
-              type = types.nullOr types.str;
-              default = null;
-              description = "Last.fm API key (required for followLastfmUsername and image metadata). Prefer environmentFile for secrets.";
             };
 
             settings = mkOption {
@@ -94,62 +59,15 @@
               default = { };
               example = {
                 theme = "dark";
-                name = "My Maloja";
-                scrobbles_gold = 100;
                 location_timezone = "Europe/Berlin";
               };
-              description = ''
-                Additional settings passed as MALOJA_* environment variables.
-                See settings.md for all available options.
-                Prefer environmentFile for secrets like API keys.
-              '';
+              description = "MALOJA_* env vars. Prefer environmentFile for secrets.";
             };
 
             environmentFile = mkOption {
               type = types.nullOr types.path;
               default = null;
-              description = ''
-                File containing environment variables (KEY=VALUE lines) passed to the
-                maloja service. Use this for secrets like API keys instead of putting
-                them in the nix store. File is re-read on service restart.
-                These override both explicit options and settings with the same key.
-              '';
-            };
-
-            nginx = {
-              enable = mkEnableOption "nginx reverse proxy for Maloja";
-
-              domain = mkOption {
-                type = types.nullOr types.str;
-                default = null;
-                description = "Domain name for the Maloja web interface. Required for ACME/SSL.";
-              };
-
-              serverAliases = mkOption {
-                type = types.listOf types.str;
-                default = [ ];
-                description = "Additional domain names";
-              };
-
-              ssl = {
-                enable = mkOption {
-                  type = types.bool;
-                  default = true;
-                  description = "Enable SSL via ACME (requires domain to be set)";
-                };
-
-                autoEnable = mkOption {
-                  type = types.bool;
-                  default = true;
-                  description = "Automatically request ACME certificate";
-                };
-              };
-
-              extraConfig = mkOption {
-                type = types.lines;
-                default = "";
-                description = "Additional nginx virtual host configuration";
-              };
+              description = "KEY=VALUE lines, overrides settings. Use for secrets.";
             };
           };
 
@@ -187,16 +105,11 @@
                 Environment =
                   [ "MALOJA_HOST=${cfg.host}"
                     "MALOJA_PORT=${toString cfg.port}"
+                    "MALOJA_DATA_DIRECTORY=${cfg.dataDir}"
                   ]
-                  ++ (if cfg.configFile != null then
-                    [ "MALOJA_DIRECTORY_CONFIG=${cfg.configFile}" ]
-                  else
-                    [ "MALOJA_DATA_DIRECTORY=${cfg.dataDir}" ]
-                  )
-                  ++ lib.optional (cfg.followLastfmUsername != null) "MALOJA_FOLLOW_LASTFM_USERNAME=${cfg.followLastfmUsername}"
-                  ++ lib.optional (cfg.lastfmApiKey != null) "MALOJA_LASTFM_API_KEY=${cfg.lastfmApiKey}"
-                  ++ settingsToEnv cfg.settings;
-              } // lib.optionalAttrs (cfg.environmentFile != null) {
+                  ++ mapAttrsToList (n: v: "${toEnv n}=${toVal v}")
+                    (filterAttrs (n: v: v != null) cfg.settings);
+              } // optionalAttrs (cfg.environmentFile != null) {
                 EnvironmentFile = cfg.environmentFile;
               };
 
@@ -204,31 +117,6 @@
                 mkdir -p ${cfg.dataDir}/{config,state,cache,logs}
               '';
             };
-
-            services.nginx = mkIf cfg.nginx.enable {
-              enable = true;
-              virtualHosts = lib.optionalAttrs (cfg.nginx.domain != null) {
-                "${cfg.nginx.domain}" = {
-                  serverName = cfg.nginx.domain;
-                  serverAliases = cfg.nginx.serverAliases;
-                  locations."/" = {
-                    proxyPass = "http://127.0.0.1:${toString cfg.port}";
-                    proxyWebsockets = true;
-                    recommendedProxySettings = true;
-                  };
-                  extraConfig = cfg.nginx.extraConfig;
-                } // lib.optionalAttrs (cfg.nginx.ssl.enable) {
-                  enableACME = cfg.nginx.ssl.autoEnable;
-                  forceSSL = true;
-                };
-              };
-            };
-
-            networking.firewall.allowedTCPPorts = mkIf cfg.openFirewall (
-              if cfg.nginx.enable && cfg.nginx.domain != null && cfg.nginx.ssl.enable
-              then [ 80 443 ]
-              else [ cfg.port ]
-            );
           };
         };
 
@@ -278,6 +166,47 @@
       packages = forAllSystemsWithPkgs (system: pkgs:
         let
           python = pkgs.${"python${pythonVersion}"};
+
+          doreah = python.pkgs.buildPythonPackage rec {
+            pname = "doreah";
+            version = "2.0.1";
+            src = python.pkgs.fetchPypi {
+              inherit pname version;
+              sha256 = "sha256-vbRtr/KED8qgLMj5bD7oSTpFjrQ3S2pph/QTs/Z0HL8=";
+            };
+            pyproject = true;
+            nativeBuildInputs = with python.pkgs; [ flit-core ];
+            propagatedBuildInputs = with python.pkgs; [ requests pyyaml jinja2 bcrypt ];
+          };
+
+          nimrodel = python.pkgs.buildPythonPackage rec {
+            pname = "nimrodel";
+            version = "0.8.0";
+            src = python.pkgs.fetchPypi {
+              inherit pname version;
+              sha256 = "sha256-f9XVuvMXMAgqlDyDsZTF7Afquj9L/0U/4xVsN+VgtW0=";
+            };
+            pyproject = true;
+            nativeBuildInputs = with python.pkgs; [ flit-core ];
+            propagatedBuildInputs = with python.pkgs; [ bottle waitress doreah parse ];
+          };
+
+          datauri' = python.pkgs.buildPythonPackage rec {
+            pname = "python-datauri";
+            version = "3.0.2";
+            src = pkgs.fetchurl {
+              url = "https://files.pythonhosted.org/packages/source/p/python-datauri/python_datauri-3.0.2.tar.gz";
+              hash = "sha256-13w38fc0/ANd5CTmQ0ZJkLK4QOm4x8GBfBH8oZtx7rc=";
+            };
+            pyproject = true;
+            nativeBuildInputs = with python.pkgs; [ setuptools ];
+            doCheck = false;
+            propagatedBuildInputs = [
+              python.pkgs."cached-property"
+              python.pkgs."typing-extensions"
+            ];
+          };
+
           pythonEnv = python.withPackages (ps: with ps; [
             bottle
             waitress
@@ -288,7 +217,7 @@
             lru-dict
             psutil
               sqlalchemy
-              datauri
+              datauri'
               python-magic
             requests
             toml
@@ -318,7 +247,7 @@
               lru-dict
               psutil
               sqlalchemy
-              python-datauri
+              datauri'
               python-magic
               requests
               toml
@@ -327,6 +256,9 @@
 
             # No tests available in the repository
             doCheck = false;
+            postPatch = ''
+              substituteInPlace pyproject.toml --replace-quiet '"psutil>=5.9,<7.0"' '"psutil>=5.9"'
+            '';
 
             meta = with pkgs.lib; {
               description = "Self-hosted music scrobble database";
