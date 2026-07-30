@@ -136,7 +136,7 @@
       devShells = forAllSystemsWithPkgs (system: pkgs: {
         default = pkgs.mkShell {
           packages = with pkgs; [
-            (pkgs.python${pythonVersion}.withPackages (ps: with ps; [
+            ((pkgs.${"python${pythonVersion}"}).withPackages (ps: with ps; [
               bottle
               waitress
               setproctitle
@@ -170,7 +170,7 @@
       # Packages
       packages = forAllSystemsWithPkgs (system: pkgs:
         let
-          python = pkgs.python${pythonVersion};
+          python = pkgs.${"python${pythonVersion}"};
           pythonEnv = python.withPackages (ps: with ps; [
             bottle
             waitress
