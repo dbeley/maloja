@@ -144,6 +144,7 @@ settingsfile = pthj(maloja_dir_config,"settings.ini")
 
 
 malojaconfig = Configuration(
+	extra_dir=None,
 	settings={
 		"Setup":{
 			"data_directory":(tp.String(),										"Data Directory",				None,					"Folder for all user data. Overwrites all choices for specific directories."),
