@@ -136,7 +136,7 @@
       devShells = forAllSystemsWithPkgs (system: pkgs: {
         default = pkgs.mkShell {
           packages = with pkgs; [
-            (python${pythonVersion}.withPackages (ps: with ps; [
+            (pkgs.python${pythonVersion}.withPackages (ps: with ps; [
               bottle
               waitress
               setproctitle
