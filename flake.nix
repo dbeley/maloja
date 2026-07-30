@@ -84,12 +84,9 @@
                 ExecStart = "${cfg.package}/bin/maloja run";
                 Restart = "on-failure";
                 RestartSec = "10";
-                User = "maloja";
-                Group = "maloja";
+                DynamicUser = true;
                 StateDirectory = "maloja";
-                StateDirectoryMode = "0755";
                 LogsDirectory = "maloja";
-                LogsDirectoryMode = "0755";
                 AmbientCapabilities = "";
                 CapabilityBoundingSet = "";
                 NoNewPrivileges = true;
