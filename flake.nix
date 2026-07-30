@@ -113,19 +113,15 @@
                 ProtectControlGroups = true;
                 MemoryDenyWriteExecute = false;
                 ReadWritePaths = [ cfg.dataDir ];
-              } // (if cfg.configFile != null then {
-                Environment = [
-                  "MALOJA_DIRECTORY_CONFIG=${cfg.configFile}"
-                ];
-              } else {
-                Environment = [
-                  "MALOJA_DATA_DIRECTORY=${cfg.dataDir}"
-                ];
-              });
-
-              serviceConfig.Environment = (serviceConfig.Environment or []) ++
-                (lib.optional (cfg.followLastfmUsername != null) "MALOJA_FOLLOW_LASTFM_USERNAME=${cfg.followLastfmUsername}") ++
-                (lib.optional (cfg.lastfmApiKey != null) "MALOJA_LASTFM_API_KEY=${cfg.lastfmApiKey}");
+                Environment =
+                  (if cfg.configFile != null then
+                    [ "MALOJA_DIRECTORY_CONFIG=${cfg.configFile}" ]
+                  else
+                    [ "MALOJA_DATA_DIRECTORY=${cfg.dataDir}" ]
+                  )
+                  ++ lib.optional (cfg.followLastfmUsername != null) "MALOJA_FOLLOW_LASTFM_USERNAME=${cfg.followLastfmUsername}"
+                  ++ lib.optional (cfg.lastfmApiKey != null) "MALOJA_LASTFM_API_KEY=${cfg.lastfmApiKey}";
+              };
 
               preStart = ''
                 mkdir -p ${cfg.dataDir}/{config,state,cache,logs}
