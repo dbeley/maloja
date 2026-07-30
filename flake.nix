@@ -76,7 +76,10 @@
 
             systemd.services.maloja = {
               description = "Maloja Music Scrobble Server";
-              after = [ "network.target" ];
+              after = [
+                "network.target"
+                "sops-nix.service"
+              ];
               wantedBy = [ "multi-user.target" ];
 
               serviceConfig = {
@@ -99,6 +102,7 @@
                 ProtectControlGroups = true;
                 MemoryDenyWriteExecute = false;
                 ReadWritePaths = [ cfg.dataDir ];
+                BindReadOnlyPaths = [ "/run/secrets" ];
                 Environment =
                   [ "MALOJA_HOST=${cfg.host}"
                     "MALOJA_PORT=${toString cfg.port}"
