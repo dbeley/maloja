@@ -196,7 +196,8 @@ malojaconfig = Configuration(
 			"track_search_provider":(tp.String(),								"Track Search Provider",		None),
 			"send_stats":(tp.Boolean(),											"Send Statistics",				None),
 			"proxy_images":(tp.Boolean(),									"Image Proxy",					True,	"Whether third party images should be downloaded and served directly by Maloja (instead of just linking their URL)"),
-			"follow_lastfm_username":(tp.String(),							"Follow Last.fm User",			None,	"Periodically import scrobbles from this Last.fm username. Requires a Last.fm API key.")
+			"follow_lastfm_username":(tp.String(),							"Follow Last.fm User",			None,	"Periodically import scrobbles from this Last.fm username. Requires a Last.fm API key."),
+			"follow_lastfm_interval":(tp.Integer(),							"Follow Last.fm Interval (hours)",	24,	"How often to check for new scrobbles from the followed Last.fm user. Last.fm rate-limits API access, so keep this low.")
 		},
 		"Database":{
 			"album_information_trust":(tp.Choice({'first':"First",'last':"Last",'majority':"Majority"}),	"Album Information Authority","first",															"Whether to trust the first album information that is sent with a track or update every time a different album is sent"),
