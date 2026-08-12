@@ -1016,18 +1016,20 @@ def start_db():
 	if _conf["FOLLOW_LASTFM_USERNAME"] and _conf["LASTFM_API_KEY"]:
 
 		def _follow_lastfm_scheduler():
-			"""Run follow_lastfm once, then reschedule itself every hour."""
+			"""Run follow_lastfm once, then reschedule itself after the configured interval."""
 			try:
 				follow_lastfm()
 			except Exception as e:
 				log(f"follow_lastfm: Task failed: {e}", color='orange')
 			from threading import Timer as _Timer
-			t = _Timer(3600, _follow_lastfm_scheduler)
+			t = _Timer(interval_seconds, _follow_lastfm_scheduler)
 			t.daemon = True
-			t.name = "follow-lastfm-hourly"
+			t.name = "follow-lastfm"
 			t.start()
 
-		log("follow_lastfm: Starting hourly follow task for Last.fm user '" + _conf["FOLLOW_LASTFM_USERNAME"] + "'...", color='cyan')
+		interval_hours = int(_conf["FOLLOW_LASTFM_INTERVAL"] or 24)
+		interval_seconds = interval_hours * 3600
+		log(f"follow_lastfm: Starting follow task for Last.fm user '" + _conf["FOLLOW_LASTFM_USERNAME"] + f"' (every {interval_hours}h)...", color='cyan')
 		_follow_lastfm_scheduler()
 
 
