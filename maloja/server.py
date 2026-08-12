@@ -222,6 +222,51 @@ def jinja_page(name):
 
 	return res
 
+# partial render of a single start page module for a given range,
+# used to lazy-load hidden ranges without computing all of them on first load
+@webserver.route("/startpage_partial/<module>/<rng>")
+def startpage_partial(module, rng):
+	modules = {
+		'charts_artists': 'partials/charts_artists_tiles.jinja',
+		'charts_tracks': 'partials/charts_tracks_tiles.jinja',
+		'charts_albums': 'partials/charts_albums_tiles.jinja',
+		'pulse': 'partials/pulse.jinja',
+	}
+	if module not in modules:
+		abort(404)
+
+	with JinjaDBConnection() as conn:
+		loc_context = {
+			"dbc": conn,
+			"adminmode": request.cookies.get("adminmode") == "true" and auth.check_request(request),
+			"apikey": None,
+			"apikeys": apikeystore,
+			"_urikeys": {},
+			"filterkeys": {},
+			"delimitkeys": {},
+			"amountkeys": {},
+			"specialkeys": {},
+		}
+		if module == 'pulse':
+			for r in jinja_environment.globals['xranges']:
+				if r['identifier'] == rng:
+					loc_context['limitkeys'] = {"since": r['firstrange']}
+					loc_context['delimitkeys'] = {"step": r['identifier']}
+					break
+			else:
+				abort(404)
+		else:
+			for r in jinja_environment.globals['xcurrent']:
+				if r['identifier'] == rng:
+					loc_context['limitkeys'] = {"timerange": r['range']}
+					break
+			else:
+				abort(404)
+
+		template = jinja_environment.get_template(modules[module])
+		return template.render(**loc_context)
+
+
 @webserver.route("/<name:re:admin.*>")
 @auth.authenticated_function()
 def jinja_page_private(name):

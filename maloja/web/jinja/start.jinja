@@ -12,6 +12,7 @@
 
 	<div id="startpage">
 
+	{% set default_range = settings['DEFAULT_RANGE_STARTPAGE'] %}
 
 	{% for module in ['charts_artists','charts_tracks','charts_albums','pulse','lastscrobbles'] %}
 	<section id="start_page_module_{{ module }}" style="grid-area: {{ module }}">

@@ -1,5 +1,30 @@
 localStorage = window.localStorage;
 
+function loadModule(identifier, unit) {
+	// the start page only renders the default range server-side,
+	// so fetch the content for other ranges on demand
+	var module = document.getElementsByClassName(identifier + "_" + unit)[0];
+	if (module !== undefined && module.childElementCount === 0) {
+		var names = {
+			'topartists': 'charts_artists',
+			'toptracks': 'charts_tracks',
+			'topalbums': 'charts_albums',
+			'pulse': 'pulse'
+		};
+		if (!(identifier in names)) return;
+		var xhttp = new XMLHttpRequest();
+		xhttp.onreadystatechange = function() {
+			if (this.readyState == 4 && this.status == 200) {
+				var m = document.getElementsByClassName(identifier + "_" + unit)[0];
+				if (m !== undefined) m.innerHTML = this.responseText;
+				if (typeof lazyLoadInstance !== 'undefined') lazyLoadInstance.update();
+			}
+		};
+		xhttp.open("GET", "/startpage_partial/" + names[identifier] + "/" + unit, true);
+		xhttp.send();
+	}
+}
+
 function showStats(identifier,unit) {
 	// Make all modules disappear
 	var modules = document.getElementsByClassName("stat_module_" + identifier);
@@ -9,6 +34,8 @@ function showStats(identifier,unit) {
 		// somehow that messes up pulse on the start page tho
 		modules[i].setAttribute("style","display:none;");
 	}
+
+	loadModule(identifier, unit);
 
 	// Make requested module appear
 	var reactivate = document.getElementsByClassName(identifier + "_" + unit);
