@@ -13,7 +13,9 @@
 {% for r in xcurrent -%}
 	<section class="stat_module_toptracks toptracks_{{ r.identifier }}" style="display:none;">
 		{%- with limitkeys = {"timerange":r.range} -%}
-		{% include 'partials/charts_tracks_tiles.jinja' %}
+		{% if r.identifier == default_range %}
+			{% include 'partials/charts_tracks_tiles.jinja' %}
+		{% endif %}
 		{%- endwith -%}
 	</section>
 {%- endfor %}

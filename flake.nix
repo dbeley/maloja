@@ -5,15 +5,15 @@
     nixpkgs.url = "nixpkgs/nixos-unstable";
   };
 
-  outputs = { self, nixpkgs }:
+  outputs =
+    { self, nixpkgs }:
     let
       forAllSystems = nixpkgs.lib.genAttrs [
         "x86_64-linux"
         "aarch64-linux"
       ];
 
-      forAllSystemsWithPkgs = f:
-        forAllSystems (system: f system nixpkgs.legacyPackages.${system});
+      forAllSystemsWithPkgs = f: forAllSystems (system: f system nixpkgs.legacyPackages.${system});
 
       pythonVersion = "312";
 
@@ -22,15 +22,23 @@
         program = "${drv}/bin/maloja";
       };
 
-    in {
+    in
+    {
       # NixOS module for installing Maloja as a system service
-      nixosModules.maloja = { config, lib, pkgs, ... }:
+      nixosModules.maloja =
+        {
+          config,
+          lib,
+          pkgs,
+          ...
+        }:
         with lib;
         let
           cfg = config.services.maloja;
-          toEnv = name: "MALOJA_" + lib.toUpper (builtins.replaceStrings ["-"] ["_"] name);
+          toEnv = name: "MALOJA_" + lib.toUpper (builtins.replaceStrings [ "-" ] [ "_" ] name);
           toVal = v: if builtins.isBool v then (if v then "true" else "false") else toString v;
-        in {
+        in
+        {
           options.services.maloja = {
             enable = mkEnableOption "Maloja scrobble server";
 
@@ -55,7 +63,16 @@
             };
 
             settings = mkOption {
-              type = types.attrsOf (types.nullOr (types.oneOf [ types.str types.int types.bool types.path ]));
+              type = types.attrsOf (
+                types.nullOr (
+                  types.oneOf [
+                    types.str
+                    types.int
+                    types.bool
+                    types.path
+                  ]
+                )
+              );
               default = { };
               example = {
                 theme = "dark";
@@ -103,14 +120,14 @@
                 MemoryDenyWriteExecute = false;
                 ReadWritePaths = [ cfg.dataDir ];
                 BindReadOnlyPaths = [ "/run/secrets" ];
-                Environment =
-                  [ "MALOJA_HOST=${cfg.host}"
-                    "MALOJA_PORT=${toString cfg.port}"
-                    "MALOJA_DATA_DIRECTORY=${cfg.dataDir}"
-                  ]
-                  ++ mapAttrsToList (n: v: "${toEnv n}=${toVal v}")
-                    (filterAttrs (n: v: v != null) cfg.settings);
-              } // optionalAttrs (cfg.environmentFile != null) {
+                Environment = [
+                  "MALOJA_HOST=${cfg.host}"
+                  "MALOJA_PORT=${toString cfg.port}"
+                  "MALOJA_DATA_DIRECTORY=${cfg.dataDir}"
+                ]
+                ++ mapAttrsToList (n: v: "${toEnv n}=${toVal v}") (filterAttrs (n: v: v != null) cfg.settings);
+              }
+              // optionalAttrs (cfg.environmentFile != null) {
                 EnvironmentFile = cfg.environmentFile;
               };
 
@@ -122,49 +139,54 @@
         };
 
       # Development shell
-      devShells = forAllSystemsWithPkgs (system: pkgs:
+      devShells = forAllSystemsWithPkgs (
+        system: pkgs:
         let
           python = pkgs.${"python${pythonVersion}"};
-          pyPkgs = python.withPackages (ps: with ps; [
-            bottle
-            waitress
-            setproctitle
-            jinja2
-            lru-dict
-            psutil
-            sqlalchemy
-            python-magic
-            requests
-            toml
-            pyyaml
-            pyvips
-          ]);
+          pyPkgs = python.withPackages (
+            ps: with ps; [
+              bottle
+              waitress
+              setproctitle
+              jinja2
+              lru-dict
+              psutil
+              sqlalchemy
+              python-magic
+              requests
+              toml
+              pyyaml
+              pyvips
+            ]
+          );
         in
         {
-        default = pkgs.mkShell {
-          packages = with pkgs; [
-            pyPkgs
-            (python.pkgs.datauri.overridePythonAttrs {
-              dontCheckPythonMetadata = true;
-            })
-            sqlite-interactive
-            sqlitebrowser
-            gnumake
-          ];
+          default = pkgs.mkShell {
+            packages = with pkgs; [
+              pyPkgs
+              (python.pkgs.datauri.overridePythonAttrs {
+                dontCheckPythonMetadata = true;
+              })
+              sqlite-interactive
+              sqlitebrowser
+              gnumake
+            ];
 
-          shellHook = ''
-            echo "Maloja development shell"
-            echo "Run 'maloja run' to start the server"
-            echo "Run 'MALOJA_DATA_DIRECTORY=./data maloja run' to use a local data directory"
-          '';
+            shellHook = ''
+              echo "Maloja development shell"
+              echo "Run 'maloja run' to start the server"
+              echo "Run 'MALOJA_DATA_DIRECTORY=./data maloja run' to use a local data directory"
+            '';
 
-          MALOJA_DATA_DIRECTORY = "./data";
-          MALOJA_SKIP_SETUP = "yes";
-        };
-      });
+            MALOJA_DATA_DIRECTORY = "./data";
+            MALOJA_SKIP_SETUP = "yes";
+          };
+        }
+      );
 
       # Packages
-      packages = forAllSystemsWithPkgs (system: pkgs:
+      packages = forAllSystemsWithPkgs (
+        system: pkgs:
         let
           python = pkgs.${"python${pythonVersion}"};
 
@@ -177,7 +199,12 @@
             };
             pyproject = true;
             nativeBuildInputs = with python.pkgs; [ flit-core ];
-            propagatedBuildInputs = with python.pkgs; [ requests pyyaml jinja2 bcrypt ];
+            propagatedBuildInputs = with python.pkgs; [
+              requests
+              pyyaml
+              jinja2
+              bcrypt
+            ];
           };
 
           nimrodel = python.pkgs.buildPythonPackage rec {
@@ -189,7 +216,12 @@
             };
             pyproject = true;
             nativeBuildInputs = with python.pkgs; [ flit-core ];
-            propagatedBuildInputs = with python.pkgs; [ bottle waitress doreah parse ];
+            propagatedBuildInputs = with python.pkgs; [
+              bottle
+              waitress
+              doreah
+              parse
+            ];
           };
 
           datauri' = python.pkgs.buildPythonPackage rec {
@@ -208,26 +240,29 @@
             ];
           };
 
-          pythonEnv = python.withPackages (ps: with ps; [
-            bottle
-            waitress
-            doreah
-            nimrodel
-            setproctitle
-            jinja2
-            lru-dict
-            psutil
+          pythonEnv = python.withPackages (
+            ps: with ps; [
+              bottle
+              waitress
+              doreah
+              nimrodel
+              setproctitle
+              jinja2
+              lru-dict
+              psutil
               sqlalchemy
               datauri'
               python-magic
-            requests
-            toml
-            pyyaml
-          ]);
-        in {
+              requests
+              toml
+              pyyaml
+            ]
+          );
+        in
+        {
           default = python.pkgs.buildPythonPackage rec {
             pname = "malojaserver";
-            version = "3.2.4";
+            version = "3.2.5";
             pyproject = true;
 
             src = ./.;
@@ -280,21 +315,31 @@
               pathsToLink = [ "/bin" ];
             };
             config = {
-              Cmd = [ "maloja" "run" ];
-              ExposedPorts = { "42010/tcp" = { }; };
+              Cmd = [
+                "maloja"
+                "run"
+              ];
+              ExposedPorts = {
+                "42010/tcp" = { };
+              };
               Env = [
                 "MALOJA_SKIP_SETUP=yes"
                 "MALOJA_DATA_DIRECTORY=/data"
               ];
-              Volumes = { "/data" = { }; };
+              Volumes = {
+                "/data" = { };
+              };
             };
           };
-        });
+        }
+      );
 
       # Apps
-      apps = forAllSystemsWithPkgs (system: pkgs: {
-        default = mkApp self.packages.${system}.default;
-      });
+      apps = forAllSystemsWithPkgs (
+        system: pkgs: {
+          default = mkApp self.packages.${system}.default;
+        }
+      );
 
       # Formatter (nix fmt)
       formatter = forAllSystemsWithPkgs (system: pkgs: pkgs.nixfmt-rfc-style);
