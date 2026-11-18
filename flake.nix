@@ -262,7 +262,7 @@
         {
           default = python.pkgs.buildPythonPackage rec {
             pname = "malojaserver";
-            version = "3.2.5";
+            version = "3.2.10";
             pyproject = true;
 
             src = ./.;
