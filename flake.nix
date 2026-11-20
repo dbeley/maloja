@@ -262,7 +262,7 @@
         {
           default = python.pkgs.buildPythonPackage rec {
             pname = "malojaserver";
-            version = "3.2.5";
+            version = (pkgs.lib.importTOML ./pyproject.toml).project.version;
             pyproject = true;
 
             src = ./.;
